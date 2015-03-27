@@ -68,8 +68,6 @@ void sparkle(){
     update_strands();
     delay(delayval);
   }
-  clear_strip();
-  update_strands();
 }
 
 void clear_strip(){
