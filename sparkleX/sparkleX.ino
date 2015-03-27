@@ -53,16 +53,33 @@ void button(){
   }
 }
 
-void sparkle(){
+void sparkle(int duration_ms, uint32_t initial_color, uint32_t final_color) {
+  uint8_t initial_red = getRed(initial_color);
+  uint8_t initial_green = getGreen(initial_color);
+  uint8_t initial_blue = getBlue(initial_color);
+
+  uint8_t final_red = getRed(final_color);
+  uint8_t final_green = getGreen(final_color);
+  uint8_t final_blue = getBlue(final_color);
+
+  int16_t shift_red = (int16_t)final_red - initial_red;
+  int16_t shift_green = (int16_t)final_green - initial_green;
+  int16_t shift_blue = (int16_t)final_blue - initial_blue;
+
+  // doesn't use the standard interval, controls how fast the neopixels sparkle instead
   int delayval = 80;
-  int num_slices = 250;
-  int step_size = 2;
-  for(int i=0;i<num_slices;i++){
-    for(int j=0;j<NUMPIXELS;j++){
+  int num_slices = duration_ms / delayval;
+  for(int i = 0; i < num_slices; i++){
+    // pre-calculating parts of this could reduce computation but might generate artifacts since integer math drops remainders
+    // specifically, calculating shift-per-slice could be way off for shifts per slice with a large fractional part
+    int red = shift_red * (i / num_slices) + initial_red;
+    int green = shift_green * (i / num_slices) + initial_green;
+    int blue = shift_blue * (i / num_slices) + initial_blue;
+    for(int j = 0; j < NUMPIXELS; j++){
       if((((i % 3) + j) % 3) == 0) {
-        pixels.setPixelColor(j,pixels.Color(255-i,255-i,255-i));
+        pixels.setPixelColor(j, pixels.Color(red, green, blue));
       } else {
-        pixels.setPixelColor(j,off_color);
+        pixels.setPixelColor(j, off_color);
       }
     }
     update_strands();
@@ -128,13 +145,17 @@ void do_fade() {
   fade(150, hold_color, pixels.Color(0, 0, 70));
 }
 
+void do_sparkle() {
+  sparkle(20000, pixels.Color(255, 255, 255), pixels.Color(5, 5, 5));
+}
+
 void loop() {
   clear_strip();
   button();
   delay(2000);
   do_flash();
   do_fade();
-  sparkle();
+  do_sparkle();
   clear_strip();
 }
 
