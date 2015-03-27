@@ -30,7 +30,6 @@ void setup() {
   pixels.begin(); // This initializes the NeoPixel library.
 }
 
-uint32_t sparkle_color = pixels.Color(250,250,250);
 uint32_t off_color = pixels.Color(0,0,0);
 
 void button(){
