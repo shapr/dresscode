@@ -102,11 +102,12 @@ void fade(){
 }
 
 void clear_strip(){
-      for(int j=0;j<NUMPIXELS;j++){
-      pixels.setPixelColor(j,off_color);
-    }
-    update_strands();
+  for(int j = 0; j < NUMPIXELS; j++){
+    pixels.setPixelColor(j, off_color);
+  }
+  update_strands();
 }
+
 void loop() {
   delayval = 50; // start out with 10ms timeslices
   clear_strip();
@@ -117,6 +118,7 @@ void loop() {
   sparkle();
   clear_strip();
 }
+
 void update_strands(){
     // copy to other strips here
   int i = 0;
