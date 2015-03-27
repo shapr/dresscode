@@ -46,12 +46,12 @@ void button(){
       break;
     }
   }
-        while(1){
-        int reading = digitalRead(3);
-        if(reading != HIGH){
-          break;
-        }
-      }
+  while(1){
+    int reading = digitalRead(3);
+    if(reading != HIGH){
+      break;
+    }
+  }
 }
 
 void sparkle(){
