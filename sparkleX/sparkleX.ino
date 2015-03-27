@@ -32,12 +32,14 @@ void setup() {
 
 uint32_t sparkle_color = pixels.Color(250,250,250);
 uint32_t off_color = pixels.Color(0,0,0);
-long lastDebounceTime = 0;
-long debounceDelay = 1000;
 
 void button(){
+  long lastDebounceTime = 0;
+  long debounceDelay = 1000;
+
   while(1){
     int reading = digitalRead(3);
+
     if(reading != HIGH) {
       lastDebounceTime = millis();
     }
@@ -47,10 +49,33 @@ void button(){
   }
   while(1){
     int reading = digitalRead(3);
+
     if(reading != HIGH){
       break;
     }
   }
+}
+
+void update_strands(){
+  // copy to other strips here
+  int i = 0;
+  while(pins[i]!=-1){
+    pixels.setPin(pins[i]);
+    pixels.show();
+    i++;
+  }
+}
+
+uint8_t getRed(uint32_t color) {
+  return (color & 0xff0000) >> 16;
+}
+
+uint8_t getGreen(uint32_t color) {
+  return (color & 0xff00) >> 8;
+}
+
+uint8_t getBlue(uint32_t color) {
+  return color & 0xff;
 }
 
 void sparkle(int duration_ms, uint32_t initial_color, uint32_t final_color) {
@@ -69,12 +94,14 @@ void sparkle(int duration_ms, uint32_t initial_color, uint32_t final_color) {
   // doesn't use the standard interval, controls how fast the neopixels sparkle instead
   int delayval = 80;
   int num_slices = duration_ms / delayval;
+
   for(int i = 0; i < num_slices; i++){
     // pre-calculating parts of this could reduce computation but might generate artifacts since integer math drops remainders
     // specifically, calculating shift-per-slice could be way off for shifts per slice with a large fractional part
     int red = shift_red * (i / num_slices) + initial_red;
     int green = shift_green * (i / num_slices) + initial_green;
     int blue = shift_blue * (i / num_slices) + initial_blue;
+
     for(int j = 0; j < NUMPIXELS; j++){
       if((((i % 3) + j) % 3) == 0) {
         pixels.setPixelColor(j, pixels.Color(red, green, blue));
@@ -85,25 +112,6 @@ void sparkle(int duration_ms, uint32_t initial_color, uint32_t final_color) {
     update_strands();
     delay(delayval);
   }
-}
-
-void clear_strip(){
-  for(int j = 0; j < NUMPIXELS; j++){
-    pixels.setPixelColor(j, off_color);
-  }
-  update_strands();
-}
-
-uint8_t getRed(uint32_t color) {
-  return (color & 0xff0000) >> 16;
-}
-
-uint8_t getGreen(uint32_t color) {
-  return (color & 0xff00) >> 8;
-}
-
-uint8_t getBlue(uint32_t color) {
-  return color & 0xff;
 }
 
 void fade(int duration_ms, uint32_t initial_color, uint32_t final_color) {
@@ -120,18 +128,27 @@ void fade(int duration_ms, uint32_t initial_color, uint32_t final_color) {
   int16_t shift_blue = (int16_t)final_blue - initial_blue;
 
   int num_slices = duration_ms / UPDATE_INTERVAL_MS;
+
   for(int i = 0; i < num_slices; i++) {
     // pre-calculating parts of this could reduce computation but might generate artifacts since integer math drops remainders
     // specifically, calculating shift-per-slice could be way off for shifts per slice with a large fractional part
     int red = shift_red * (i / num_slices) + initial_red;
     int green = shift_green * (i / num_slices) + initial_green;
     int blue = shift_blue * (i / num_slices) + initial_blue;
+
     for(int j = 0; j < NUMPIXELS; j++){
       pixels.setPixelColor(j, pixels.Color(red, green, blue));
     }
     update_strands();
     delay(UPDATE_INTERVAL_MS);
   }
+}
+
+void clear_strip(){
+  for(int j = 0; j < NUMPIXELS; j++){
+    pixels.setPixelColor(j, off_color);
+  }
+  update_strands();
 }
 
 void do_flash() {
@@ -157,14 +174,4 @@ void loop() {
   do_fade();
   do_sparkle();
   clear_strip();
-}
-
-void update_strands(){
-  // copy to other strips here
-  int i = 0;
-  while(pins[i]!=-1){
-    pixels.setPin(pins[i]);
-    pixels.show();
-    i++;
-  }
 }
