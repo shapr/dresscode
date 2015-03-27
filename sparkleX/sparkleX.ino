@@ -122,12 +122,66 @@ void clear_strip(){
   update_strands();
 }
 
+uint8_t getRed(uint32_t color) {
+  return (color & 0xff0000) >> 16;
+}
+
+uint8_t getGreen(uint32_t color) {
+  return (color & 0xff00) >> 8;
+}
+
+uint8_t getBlue(uint32_t color) {
+  return color & 0xff;
+}
+
+void fade(int duration_ms, uint32_t initial_color, uint32_t final_color) {
+  uint8_t initial_red = getRed(initial_color);
+  uint8_t initial_green = getGreen(initial_color);
+  uint8_t initial_blue = getBlue(initial_color);
+
+  uint8_t final_red = getRed(final_color);
+  uint8_t final_green = getGreen(final_color);
+  uint8_t final_blue = getBlue(final_color);
+
+  int16_t shift_red = final_red - initial_red;
+  int16_t shift_green = final_green - initial_green;
+  int16_t shift_blue = final_blue - initial_blue;
+
+  int num_slices = duration_ms / UPDATE_INTERVAL_MS;
+  for(int i = 0; i < num_slices; i++) {
+    // pre-calculating parts of this could reduce computation but might generate artifacts since integer math drops remainders
+    // specifically, calculating shift-per-slice could be way off for shifts per slice with a large fractional part
+    int red = shift_red * (i / num_slices) + initial_red;
+    int green = shift_green * (i / num_slices) + initial_green;
+    int blue = shift_blue * (i / num_slices) + initial_blue;
+    for(int j = 0; j < NUMPIXELS; j++){
+      pixels.setPixelColor(j, pixels.Color(red, green, blue));
+    }
+    update_strands();
+    delay(UPDATE_INTERVAL_MS);
+  }
+}
+
+void do_flash() {
+  //white_flash(175, 0, 250);
+  fade(175, pixels.Color(0, 0, 0), pixels.Color(250, 250, 250));
+}
+
+void do_fade() {
+  //fade_to_blue(500, 250, 0, 70);
+
+  // Instead of having a "hold value" integrated into the function, just break this into two separate fades
+  uint32_t hold_color = pixels.Color(70, 70, 70);
+  fade(350, pixels.Color(250, 250, 250), hold_color);
+  fade(150, hold_color, pixels.Color(0, 0, 70));
+}
+
 void loop() {
   clear_strip();
   button();
   delay(2000);
-  white_flash(175, 0, 250);
-  fade_to_blue(500, 250, 0, 70);
+  do_flash();
+  do_fade();
   sparkle();
   clear_strip();
 }
