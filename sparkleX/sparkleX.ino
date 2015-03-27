@@ -72,49 +72,6 @@ void sparkle(){
   update_strands();
 }
 
-void simple_fade(uint32_t duration_ms, uint8_t initial_brightness, uint8_t final_brightness) {
-  int num_slices = duration_ms / UPDATE_INTERVAL_MS;
-  int total_shift = final_brightness - initial_brightness;
-  for(int i = 0; i < num_slices; i++) {
-    // pre-calculating parts of this could reduce computation but might generate artifacts since integer math drops remainders
-    // specifically, calculating shift-per-slice could be way off for shifts per slice with a large fractional part
-    int current_value = total_shift * (i / num_slices) + initial_brightness;
-    for(int j = 0; j < NUMPIXELS; j++){
-      pixels.setPixelColor(j, pixels.Color(current_value, current_value, current_value));
-    }
-    update_strands();
-    delay(UPDATE_INTERVAL_MS);
-  }
-}
-
-void white_flash(uint32_t duration_ms, uint8_t initial_brightness, uint8_t final_brightness) {
-  // use the final brightness as the blue hold value so blue never holds until the end
-  //fade_to_blue(duration_ms, initial_brightness, final_brightness, final_brightness);
-  simple_fade(duration_ms, initial_brightness, final_brightness);
-}
-
-void fade_to_blue(uint32_t duration_ms, uint8_t initial_brightness, uint8_t final_brightness, uint8_t blue_hold) {
-  int num_slices = duration_ms / UPDATE_INTERVAL_MS;
-  int total_shift = final_brightness - initial_brightness;
-  for(int i = 0; i < num_slices; i++) {
-    // pre-calculating parts of this could reduce computation but might generate artifacts since integer math drops remainders
-    // specifically, calculating shift-per-slice could be way off for shifts per slice with a large fractional part
-    int current_value = total_shift * (i / num_slices) + initial_brightness;
-    int b = current_value;
-    // if decreasing and below hold value or increasing and above hold value, apply hold value
-    if ((total_shift < 0 && current_value < blue_hold) ||
-        (total_shift > 0 && current_value > blue_hold)) {
-      b = blue_hold;
-    }
-
-    for(int j = 0; j < NUMPIXELS; j++){
-      pixels.setPixelColor(j, pixels.Color(current_value, current_value, b));
-    }
-    update_strands();
-    delay(UPDATE_INTERVAL_MS);
-  }
-}
-
 void clear_strip(){
   for(int j = 0; j < NUMPIXELS; j++){
     pixels.setPixelColor(j, off_color);
@@ -163,13 +120,10 @@ void fade(int duration_ms, uint32_t initial_color, uint32_t final_color) {
 }
 
 void do_flash() {
-  //white_flash(175, 0, 250);
   fade(175, pixels.Color(0, 0, 0), pixels.Color(250, 250, 250));
 }
 
 void do_fade() {
-  //fade_to_blue(500, 250, 0, 70);
-
   // Instead of having a "hold value" integrated into the function, just break this into two separate fades
   uint32_t hold_color = pixels.Color(70, 70, 70);
   fade(350, pixels.Color(250, 250, 250), hold_color);
