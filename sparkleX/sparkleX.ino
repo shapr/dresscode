@@ -18,7 +18,7 @@ int8_t pins[] = {6,9,10,12,-1};
 // example for more information on possible values.
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
-int delayval = 10; // delay for half a second
+#define UPDATE_INTERVAL_MS 10
 
 void setup() {
   // This is for Trinket 5V 16MHz, you can remove these three lines if you are not using a Trinket
@@ -30,7 +30,6 @@ void setup() {
   pixels.begin(); // This initializes the NeoPixel library.
 }
 
-int num_slices = 50; // fifty slices, each 100 ms long
 uint32_t sparkle_color = pixels.Color(250,250,250);
 uint32_t off_color = pixels.Color(0,0,0);
 long lastDebounceTime = 0;
@@ -55,9 +54,9 @@ void button(){
 }
 
 void sparkle(){
-  delayval = 80;
-  num_slices = 250;
-  int step_size = 2; // num_slices / 255;
+  int delayval = 80;
+  int num_slices = 250;
+  int step_size = 2;
   for(int i=0;i<num_slices;i++){
     for(int j=0;j<NUMPIXELS;j++){
       if((((i % 3) + j) % 3) == 0) {
@@ -73,31 +72,39 @@ void sparkle(){
   update_strands();
 }
 
-void flash(){
-  num_slices = 25;
-  delayval = 7;
-  for(int i=0;i<num_slices;i++){
-    for(int j=0;j<NUMPIXELS;j++){
-      pixels.setPixelColor(j,pixels.Color(i*10,i*10,i*10));
+void white_flash(int duration_ms, int initial_brightness, int final_brightness) {
+  int num_slices = duration_ms / UPDATE_INTERVAL_MS;
+  int total_shift = final_brightness - initial_brightness;
+  for(int i = 0; i < num_slices; i++){
+    // pre-calculating parts of this could reduce computation but might generate artifacts since integer math drops remainders
+    // specifically, calculating shift-per-slice could be way off for shifts per slice with a large fractional part
+    int current_value = total_shift * (i / num_slices) + initial_brightness;
+    for(int j = 0; j < NUMPIXELS; j++){
+      pixels.setPixelColor(j, pixels.Color(current_value,current_value,current_value));
     }
     update_strands();
-    delay(delayval);
+    delay(UPDATE_INTERVAL_MS);
   }
-
 }
 
-void fade(){
-  num_slices = 25;
-  delayval = 20;
-  int maxval = 250;
+void fade_to_blue(int duration_ms, int initial_brightness, int final_brightness, int blue_hold) {
+  int num_slices = duration_ms / UPDATE_INTERVAL_MS;
   int b = 0;
-  for(int i=maxval;i>0;i=i-5){
-    for(int j=0;j<NUMPIXELS;j++){
-      if(i < 70) { b = 70; } else { b = i; }
-      pixels.setPixelColor(j,pixels.Color(i,i,b));
+  int total_shift = final_brightness - initial_brightness;
+  for(int i = 0; i < num_slices; i++) {
+    int current_value = total_shift * (i / num_slices) + initial_brightness;
+    // if decreasing and below hold value or increasing and above hold value, apply hold value
+    if ((total_shift < 0 && current_value < blue_hold) ||
+        (total_shift > 0 && current_value > blue_hold)) {
+      b = blue_hold;
+    } else {
+      b = current_value;
+    }
+    for(int j = 0; j < NUMPIXELS; j++){
+      pixels.setPixelColor(j, pixels.Color(current_value, current_value, b));
     }
     update_strands();
-    delay(delayval);
+    delay(UPDATE_INTERVAL_MS);
   }
 }
 
@@ -109,12 +116,11 @@ void clear_strip(){
 }
 
 void loop() {
-  delayval = 50; // start out with 10ms timeslices
   clear_strip();
   button();
   delay(2000);
-  flash();
-  fade();
+  white_flash(175, 0, 250);
+  fade_to_blue(500, 250, 0, 70);
   sparkle();
   clear_strip();
 }
