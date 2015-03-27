@@ -100,9 +100,9 @@ void fade(int duration_ms, uint32_t initial_color, uint32_t final_color) {
   uint8_t final_green = getGreen(final_color);
   uint8_t final_blue = getBlue(final_color);
 
-  int16_t shift_red = final_red - initial_red;
-  int16_t shift_green = final_green - initial_green;
-  int16_t shift_blue = final_blue - initial_blue;
+  int16_t shift_red = (int16_t)final_red - initial_red;
+  int16_t shift_green = (int16_t)final_green - initial_green;
+  int16_t shift_blue = (int16_t)final_blue - initial_blue;
 
   int num_slices = duration_ms / UPDATE_INTERVAL_MS;
   for(int i = 0; i < num_slices; i++) {
