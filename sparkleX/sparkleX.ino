@@ -187,7 +187,7 @@ void loop() {
 }
 
 void update_strands(){
-    // copy to other strips here
+  // copy to other strips here
   int i = 0;
   while(pins[i]!=-1){
     pixels.setPin(pins[i]);
