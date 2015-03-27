@@ -72,34 +72,41 @@ void sparkle(){
   update_strands();
 }
 
-void white_flash(int duration_ms, int initial_brightness, int final_brightness) {
+void simple_fade(uint32_t duration_ms, uint8_t initial_brightness, uint8_t final_brightness) {
   int num_slices = duration_ms / UPDATE_INTERVAL_MS;
   int total_shift = final_brightness - initial_brightness;
-  for(int i = 0; i < num_slices; i++){
+  for(int i = 0; i < num_slices; i++) {
     // pre-calculating parts of this could reduce computation but might generate artifacts since integer math drops remainders
     // specifically, calculating shift-per-slice could be way off for shifts per slice with a large fractional part
     int current_value = total_shift * (i / num_slices) + initial_brightness;
     for(int j = 0; j < NUMPIXELS; j++){
-      pixels.setPixelColor(j, pixels.Color(current_value,current_value,current_value));
+      pixels.setPixelColor(j, pixels.Color(current_value, current_value, current_value));
     }
     update_strands();
     delay(UPDATE_INTERVAL_MS);
   }
 }
 
-void fade_to_blue(int duration_ms, int initial_brightness, int final_brightness, int blue_hold) {
+void white_flash(uint32_t duration_ms, uint8_t initial_brightness, uint8_t final_brightness) {
+  // use the final brightness as the blue hold value so blue never holds until the end
+  //fade_to_blue(duration_ms, initial_brightness, final_brightness, final_brightness);
+  simple_fade(duration_ms, initial_brightness, final_brightness);
+}
+
+void fade_to_blue(uint32_t duration_ms, uint8_t initial_brightness, uint8_t final_brightness, uint8_t blue_hold) {
   int num_slices = duration_ms / UPDATE_INTERVAL_MS;
-  int b = 0;
   int total_shift = final_brightness - initial_brightness;
   for(int i = 0; i < num_slices; i++) {
+    // pre-calculating parts of this could reduce computation but might generate artifacts since integer math drops remainders
+    // specifically, calculating shift-per-slice could be way off for shifts per slice with a large fractional part
     int current_value = total_shift * (i / num_slices) + initial_brightness;
+    int b = current_value;
     // if decreasing and below hold value or increasing and above hold value, apply hold value
     if ((total_shift < 0 && current_value < blue_hold) ||
         (total_shift > 0 && current_value > blue_hold)) {
       b = blue_hold;
-    } else {
-      b = current_value;
     }
+
     for(int j = 0; j < NUMPIXELS; j++){
       pixels.setPixelColor(j, pixels.Color(current_value, current_value, b));
     }
