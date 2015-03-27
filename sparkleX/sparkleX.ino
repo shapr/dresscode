@@ -18,7 +18,7 @@ int8_t pins[] = {6,9,10,12,-1};
 // example for more information on possible values.
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
-int delayval = 10; // delay for half a second
+#define UPDATE_INTERVAL_MS 10
 
 void setup() {
   // This is for Trinket 5V 16MHz, you can remove these three lines if you are not using a Trinket
@@ -30,15 +30,15 @@ void setup() {
   pixels.begin(); // This initializes the NeoPixel library.
 }
 
-int num_slices = 50; // fifty slices, each 100 ms long
-uint32_t sparkle_color = pixels.Color(250,250,250);
 uint32_t off_color = pixels.Color(0,0,0);
-long lastDebounceTime = 0;
-long debounceDelay = 1000;
 
 void button(){
+  long lastDebounceTime = 0;
+  long debounceDelay = 1000;
+
   while(1){
     int reading = digitalRead(3);
+
     if(reading != HIGH) {
       lastDebounceTime = millis();
     }
@@ -46,83 +46,131 @@ void button(){
       break;
     }
   }
-        while(1){
-        int reading = digitalRead(3);
-        if(reading != HIGH){
-          break;
-        }
-      }
-}
+  while(1){
+    int reading = digitalRead(3);
 
-void sparkle(){
-  delayval = 80;
-  num_slices = 250;
-  int step_size = 2; // num_slices / 255;
-  for(int i=0;i<num_slices;i++){
-    for(int j=0;j<NUMPIXELS;j++){
-      if((((i % 3) + j) % 3) == 0) {
-        pixels.setPixelColor(j,pixels.Color(255-i,255-i,255-i));
-      } else {
-        pixels.setPixelColor(j,off_color);
-      }
+    if(reading != HIGH){
+      break;
     }
-    update_strands();
-    delay(delayval);
-  }
-  clear_strip();
-  update_strands();
-}
-
-void flash(){
-  num_slices = 25;
-  delayval = 7;
-  for(int i=0;i<num_slices;i++){
-    for(int j=0;j<NUMPIXELS;j++){
-      pixels.setPixelColor(j,pixels.Color(i*10,i*10,i*10));
-    }
-    update_strands();
-    delay(delayval);
-  }
-
-}
-
-void fade(){
-  num_slices = 25;
-  delayval = 20;
-  int maxval = 250;
-  int b = 0;
-  for(int i=maxval;i>0;i=i-5){
-    for(int j=0;j<NUMPIXELS;j++){
-      if(i < 70) { b = 70; } else { b = i; }
-      pixels.setPixelColor(j,pixels.Color(i,i,b));
-    }
-    update_strands();
-    delay(delayval);
   }
 }
 
-void clear_strip(){
-      for(int j=0;j<NUMPIXELS;j++){
-      pixels.setPixelColor(j,off_color);
-    }
-    update_strands();
-}
-void loop() {
-  delayval = 50; // start out with 10ms timeslices
-  clear_strip();
-  button();
-  delay(2000);
-  flash();
-  fade();
-  sparkle();
-  clear_strip();
-}
 void update_strands(){
-    // copy to other strips here
+  // copy to other strips here
   int i = 0;
   while(pins[i]!=-1){
     pixels.setPin(pins[i]);
     pixels.show();
     i++;
   }
+}
+
+uint8_t getRed(uint32_t color) {
+  return (color & 0xff0000) >> 16;
+}
+
+uint8_t getGreen(uint32_t color) {
+  return (color & 0xff00) >> 8;
+}
+
+uint8_t getBlue(uint32_t color) {
+  return color & 0xff;
+}
+
+void sparkle(int duration_ms, uint32_t initial_color, uint32_t final_color) {
+  uint8_t initial_red = getRed(initial_color);
+  uint8_t initial_green = getGreen(initial_color);
+  uint8_t initial_blue = getBlue(initial_color);
+
+  uint8_t final_red = getRed(final_color);
+  uint8_t final_green = getGreen(final_color);
+  uint8_t final_blue = getBlue(final_color);
+
+  int16_t shift_red = (int16_t)final_red - initial_red;
+  int16_t shift_green = (int16_t)final_green - initial_green;
+  int16_t shift_blue = (int16_t)final_blue - initial_blue;
+
+  // doesn't use the standard interval, controls how fast the neopixels sparkle instead
+  int delayval = 80;
+  int num_slices = duration_ms / delayval;
+
+  for(int i = 0; i < num_slices; i++){
+    // pre-calculating parts of this could reduce computation but might generate artifacts since integer math drops remainders
+    // specifically, calculating shift-per-slice could be way off for shifts per slice with a large fractional part
+    int red = shift_red * (i / num_slices) + initial_red;
+    int green = shift_green * (i / num_slices) + initial_green;
+    int blue = shift_blue * (i / num_slices) + initial_blue;
+
+    for(int j = 0; j < NUMPIXELS; j++){
+      if((((i % 3) + j) % 3) == 0) {
+        pixels.setPixelColor(j, pixels.Color(red, green, blue));
+      } else {
+        pixels.setPixelColor(j, off_color);
+      }
+    }
+    update_strands();
+    delay(delayval);
+  }
+}
+
+void fade(int duration_ms, uint32_t initial_color, uint32_t final_color) {
+  uint8_t initial_red = getRed(initial_color);
+  uint8_t initial_green = getGreen(initial_color);
+  uint8_t initial_blue = getBlue(initial_color);
+
+  uint8_t final_red = getRed(final_color);
+  uint8_t final_green = getGreen(final_color);
+  uint8_t final_blue = getBlue(final_color);
+
+  int16_t shift_red = (int16_t)final_red - initial_red;
+  int16_t shift_green = (int16_t)final_green - initial_green;
+  int16_t shift_blue = (int16_t)final_blue - initial_blue;
+
+  int num_slices = duration_ms / UPDATE_INTERVAL_MS;
+
+  for(int i = 0; i < num_slices; i++) {
+    // pre-calculating parts of this could reduce computation but might generate artifacts since integer math drops remainders
+    // specifically, calculating shift-per-slice could be way off for shifts per slice with a large fractional part
+    int red = shift_red * (i / num_slices) + initial_red;
+    int green = shift_green * (i / num_slices) + initial_green;
+    int blue = shift_blue * (i / num_slices) + initial_blue;
+
+    for(int j = 0; j < NUMPIXELS; j++){
+      pixels.setPixelColor(j, pixels.Color(red, green, blue));
+    }
+    update_strands();
+    delay(UPDATE_INTERVAL_MS);
+  }
+}
+
+void clear_strip(){
+  for(int j = 0; j < NUMPIXELS; j++){
+    pixels.setPixelColor(j, off_color);
+  }
+  update_strands();
+}
+
+void do_flash() {
+  fade(175, pixels.Color(0, 0, 0), pixels.Color(250, 250, 250));
+}
+
+void do_fade() {
+  // Instead of having a "hold value" integrated into the function, just break this into two separate fades
+  uint32_t hold_color = pixels.Color(70, 70, 70);
+  fade(350, pixels.Color(250, 250, 250), hold_color);
+  fade(150, hold_color, pixels.Color(0, 0, 70));
+}
+
+void do_sparkle() {
+  sparkle(20000, pixels.Color(255, 255, 255), pixels.Color(5, 5, 5));
+}
+
+void loop() {
+  clear_strip();
+  button();
+  delay(2000);
+  do_flash();
+  do_fade();
+  do_sparkle();
+  clear_strip();
 }
